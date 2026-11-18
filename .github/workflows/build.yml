@@ -20,16 +20,27 @@ jobs:
 
     - name: Unzip Project Source
       run: |
-        unzip pathbeacon.zip -d extracted_project
+        mkdir -p extracted_project
+        unzip -q pathbeacon.zip -d extracted_project
+        ls -R extracted_project
 
-    - name: Build APK with Gradle
+    - name: Find and Build with Gradle
       run: |
         cd extracted_project
-        chmod +x gradlew
-        ./gradlew assembleDebug
+        # Find directory containing build.gradle
+        PROJECT_DIR=$(find . -name "build.gradle" -maxdepth 3 | xargs dirname)
+        echo "Found project directory: $PROJECT_DIR"
+        cd "$PROJECT_DIR"
+        chmod +x gradlew || true
+        if [ -f "gradlew" ]; then
+          ./gradlew assembleDebug
+        else
+          gradle assembleDebug
+        fi
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: extracted_project/app/build/outputs/apk/debug/app-debug.apk
+        path: |
+          extracted_project/**/build/outputs/apk/debug/app-debug.apk
